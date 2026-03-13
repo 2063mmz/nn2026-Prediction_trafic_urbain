@@ -207,10 +207,8 @@ def _print_stats_and_samples(stats, first_rows, last_rows, csv_path):
     if n == 0:
         print("Aucune ligne écrite.")
         return
-    print()
-    print("=" * 60)
+
     print("STATISTIQUES (fichier prétraité)")
-    print("=" * 60)
     print("  Fichier de sortie     :", csv_path)
     print("  Nombre de lignes      :", f"{n:,}")
     print("  Valeurs manquantes :")
@@ -227,34 +225,28 @@ def _print_stats_and_samples(stats, first_rows, last_rows, csv_path):
     print("  Nombre de modes       :", len(stats["modes"]))
     ms = sorted(stats["modes"])
     print("  Modes (liste)         :", ", ".join(ms[:15]) + (" ..." if len(ms) > 15 else ""))
-    print()
-    print("=" * 60)
+    
     print("EXEMPLES (premières lignes)")
-    print("=" * 60)
     for i, row in enumerate(first_rows, 1):
         print("  --- Ligne", i, "---")
         for k, v in row.items():
             print("   ", k + ":", v)
-    print()
+
     print("EXEMPLES (dernières lignes)")
-    print("=" * 60)
     for i, row in enumerate(last_rows, 1):
         print("  --- Dernière", i, "---")
         for k, v in row.items():
             print("   ", k + ":", v)
-    print("=" * 60)
-
 
 if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser(description="Prétraitement stream du JSON comptages → CSV")
-    parser.add_argument("--input", default="comptage_2024_2026.json", help="Fichier JSON brut")
-    parser.add_argument("--output", default="data/traffic_raw_cleaned.csv", help="CSV de sortie nettoyé")
+    parser.add_argument("--input", default="comptage_2024_2026.json")
+    parser.add_argument("--output", default="data/traffic_raw_cleaned.csv")
     parser.add_argument("--sites", nargs="*", help="Filtrer par id_site (ex: 10022 10093)")
     parser.add_argument("--no-skip-invalid-time", action="store_true", help="Garder les lignes sans horodatage")
     args = parser.parse_args()
 
-    print("Lecture en stream du JSON (peut prendre plusieurs minutes)...")
     n = stream_json_to_csv(
         args.input,
         args.output,
