@@ -59,6 +59,9 @@ Aucun traitement de type anonymisation ou agrégation de données personnelles ;
   - Modélisation : un modèle LSTM (séquences 24 h → prédiction heure suivante), entraîné sur l’ensemble des sites du jeu fusionné.  
   - Interface : une seule app Streamlit pour la prédiction (choix site / date / heure, affichage de la prédiction et d’un historique récent).
 - **Outils communs** : Python 3, environnement virtuel, `requirements.txt` pour reproductibilité.
+- **Répartition concrète entre les membres** :  
+  Le projet a été réalisé de manière collaborative, avec des échanges réguliers sur les orientations méthodologiques et les solutions techniques à adopter. La phase initiale de nettoyage, d’exploration des données et d’identification d’une stratégie réalisable a été menée en commun. Dans ce cadre, **Cao Yue** a d’abord implémenté le pipeline de base. **Xu Hongying** l’a ensuite enrichi et amélioré, a pris en charge l’entraînement du modèle **LSTM** et a développé une première version de l’application web. Dans un second temps, **Cao Yue** a entraîné les modèles **HGB** et **GRU**, puis a complété et consolidé le système final en affinant les résultats et en corrigeant les éléments restés incomplets.  
+- **Travail commun** : définition du sujet, choix méthodologiques, expérimentation, analyse des résultats et rédaction de la documentation finale.
 
 ### 3.2 Identification et résolution des problèmes
 
