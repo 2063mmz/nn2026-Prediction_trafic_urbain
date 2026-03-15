@@ -62,32 +62,51 @@ Nous ajoutons plusieurs variables dérivées pour enrichir les modèles :
 
 ## 4. Structure du projet
 
-```text
-project/
-├── app.py
-├── fetch_weather.py
-├── preprocess_traffic_json.py
-├── process_traffic_data.py
-├── build_dataset.py
-├── train_hgb.py
-├── train_lstm.py
-├── train_gru.py
-├── requirements.txt
-├── README_final_FR.md
+nn2026-Prediction_trafic_urbain/
+├── data/
+│   ├── comptage_2024_2026.json
+│   ├── traffic_raw_cleaned.csv
+│   ├── traffic_timeseries.csv
+│   ├── weather_paris.csv
+│   ├── dataset_traffic_weather.csv
+│   ├── model_lstm.pt
+│   ├── model_lstm_meta.json
+│   ├── model_gru.pt
+│   ├── model_gru_meta.json
+│   ├── model_hgb.joblib
+│   ├── model_hgb_meta.json
+│   ├── scaler_lstm_x.joblib
+│   ├── scaler_lstm_y.joblib
+│   ├── scaler_gru_x.joblib
+│   ├── scaler_gru_y.joblib
+│   ├── predictions_hgb.csv
+│   └── predictions_gru.csv
+├── src/
+│   ├── preprocess_traffic_json.py
+│   ├── process_traffic_data.py
+│   ├── fetch_weather.py
+│   ├── build_dataset.py
+│   ├── train_lstm.py
+│   ├── train_hgb.py
+│   └── train_gru.py
 ├── DOCUMENTATION.md
-└── data/
-    ├── dataset_traffic_weather.csv
-    ├── model_hgb.joblib
-    ├── model_hgb_meta.json
-    ├── model_lstm.pt
-    ├── model_lstm_meta.json
-    ├── scaler_lstm_x.joblib
-    ├── scaler_lstm_y.joblib
-    ├── model_gru.pt
-    ├── model_gru_meta.json
-    ├── scaler_gru_x.joblib
-    └── scaler_gru_y.joblib
-```
+├── README.md
+├── app.py
+└── requirements.txt
+
+### Contenu des dossiers
+
+- data/ : données d’entrée, fichiers intermédiaires, modèles entraînés, scalers et fichiers de sortie
+
+- src/ : scripts Python de prétraitement, fusion des données et entraînement des modèles
+
+- app.py : point d’entrée principal de l’application Streamlit
+
+- DOCUMENTATION.md : documentation technique du projet
+
+- README.md : guide d’installation et d’exécution
+
+- requirements.txt : dépendances Python nécessaires
 
 ---
 
@@ -121,19 +140,10 @@ Application Streamlit permettant de charger les modèles sauvegardés et d’obt
 
 ## 6. Installation
 
-Créer un environnement virtuel puis installer les dépendances :
+Il faut dans un environnement virtuel puis installer les dépendances :
 
 ```bash
-python -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-```
-
-Sous Windows :
-
-```bash
-.venv\Scripts\activate
-pip install -r requirements.txt
+uv pip install -r requirements.txt
 ```
 
 ---
@@ -177,29 +187,29 @@ Si l’on souhaite reconstruire tout le pipeline à partir des données brutes :
 
 ### 9.1 Prétraitement du JSON
 ```bash
-python preprocess_traffic_json.py --input data/comptages.json --output data/traffic_raw_cleaned.csv
+python src/preprocess_traffic_json.py --input data/comptage_2024_2026.json --output data/traffic_raw_cleaned.csv
 ```
 
 ### 9.2 Agrégation du trafic
 ```bash
-python process_traffic_data.py --input data/traffic_raw_cleaned.csv --output data/traffic_timeseries.csv
+python src/process_traffic_data.py --input data/traffic_raw_cleaned.csv --output data/traffic_timeseries.csv
 ```
 
 ### 9.3 Téléchargement de la météo
 ```bash
-python fetch_weather.py --start 2024-01-01 --end 2026-03-01 --output data/weather_paris.csv
+python src/fetch_weather.py --start 2024-01-01 --end 2026-02-28 --output data/weather_paris.csv
 ```
 
 ### 9.4 Fusion trafic + météo
 ```bash
-python build_dataset.py --traffic data/traffic_timeseries.csv --weather data/weather_paris.csv --output data/dataset_traffic_weather.csv
+python src/build_dataset.py --traffic data/traffic_timeseries.csv --weather data/weather_paris.csv --output data/dataset_traffic_weather.csv
 ```
 
 ### 9.5 Entraînement des modèles
 ```bash
-python train_hgb.py
-python train_lstm.py
-python train_gru.py
+python src/train_lstm.py
+python src/train_hgb.py
+python src/train_gru.py
 ```
 
 ---
@@ -212,7 +222,29 @@ python train_gru.py
 
 ---
 
-## 11. Fichiers fournis
+## 11. Fichiers volumineux
+
+Certains fichiers du dossier `data/` sont volumineux et sont suivis avec **Git LFS**.
+
+Pour récupérer correctement tous les fichiers du projet, il faut :
+
+- cloner le dépôt ;
+
+- avoir Git LFS installé ;
+
+- éviter le téléchargement direct du dépôt en ZIP.
+
+Commandes recommandées :
+
+```bash
+git lfs install
+git clone <URL_DU_DEPOT>
+cd nn2026-Prediction_trafic_urbain
+git lfs pull
+```
+---
+
+## 13. Fichiers fournis
 
 - `DOCUMENTATION.md` : documentation technique du projet ;
 - `requirements.txt` : dépendances Python ;
