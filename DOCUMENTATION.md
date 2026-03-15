@@ -3,7 +3,6 @@
 **Projet NN2026 — M2 TAL, Université Paris Nanterre**  
 **Membres : CAO Yue, XU Hongying — INALCO**
 
----
 
 ## 1. Objectifs du projet
 
@@ -14,7 +13,6 @@
   - Proposer une interface de prédiction (Streamlit) permettant de choisir un site, une date et une heure et d’afficher la prédiction ainsi qu’un historique récent.
 - **Cadre** : projet final du cours Réseaux de neurones (Loïc Grobol), à livrer sous forme de pipeline reproductible et documenté.
 
----
 
 ## 2. Données utilisées
 
@@ -49,7 +47,6 @@ Aucune donnée personnelle ; pas de restriction particulière pour un usage acad
 
 Aucun traitement de type anonymisation ou agrégation de données personnelles ; les identifiants de sites sont des identifiants publics de compteurs.
 
----
 
 ## 3. Méthodologie
 
@@ -79,7 +76,6 @@ Aucun traitement de type anonymisation ou agrégation de données personnelles ;
 6. Application Streamlit : chargement du jeu, chargement optionnel du LSTM, calcul de la baseline, affichage de la prédiction et d’un graphique d’historique.  
 7. Rédaction de la documentation technique et des guides d’exécution.
 
----
 
 ## 4. Implémentation
 
@@ -139,7 +135,6 @@ Aucun traitement de type anonymisation ou agrégation de données personnelles ;
 
 L’interface s’ouvre dans le navigateur ; on choisit le site, la date et l’heure, et on obtient la prédiction (LSTM si les fichiers sont présents, sinon baseline) ainsi qu’un graphique d’historique pour le site.
 
----
 
 ## 5. Résultats et discussion
 
