@@ -62,6 +62,7 @@ Nous ajoutons plusieurs variables dérivées pour enrichir les modèles :
 
 ## 4. Structure du projet
 
+```text
 nn2026-Prediction_trafic_urbain/
 ├── data/
 │   ├── comptage_2024_2026.json
@@ -93,20 +94,21 @@ nn2026-Prediction_trafic_urbain/
 ├── README.md
 ├── app.py
 └── requirements.txt
+```
 
 ### Contenu des dossiers
 
-- data/ : données d’entrée, fichiers intermédiaires, modèles entraînés, scalers et fichiers de sortie
+- `data/` : données d’entrée, fichiers intermédiaires, modèles entraînés, scalers et fichiers de sortie
 
-- src/ : scripts Python de prétraitement, fusion des données et entraînement des modèles
+- `src/` : scripts Python de prétraitement, fusion des données et entraînement des modèles
 
-- app.py : point d’entrée principal de l’application Streamlit
+- `app.py` : point d’entrée principal de l’application Streamlit
 
-- DOCUMENTATION.md : documentation technique du projet
+- `DOCUMENTATION.md` : documentation technique du projet
 
-- README.md : guide d’installation et d’exécution
+- `README.md` : guide d’installation et d’exécution
 
-- requirements.txt : dépendances Python nécessaires
+- `requirements.txt` : dépendances Python nécessaires
 
 ---
 
