@@ -119,14 +119,15 @@ Aucun traitement de type anonymisation ou agrégation de données personnelles ;
 
 | Étape | Script | Entrée | Sortie |
 |-------|--------|--------|--------|
-| 0 | — | — | Environnement : `pip install -r requirements.txt` |
+| 0 | — | — | Environnement prêt : `pip install -r requirements.txt` |
 | 1 | `preprocess_traffic_json.py` | `comptage_2024_2026.json` | `data/traffic_raw_cleaned.csv` |
 | 2 | `process_traffic_data.py` | `data/traffic_raw_cleaned.csv` | `data/traffic_timeseries.csv` |
-| 3 | `fetch_weather.py` | API (dates en arguments) | `data/weather_paris.csv` |
+| 3 | `fetch_weather.py` | Requêtes vers l’API météo (dates et paramètres en arguments) | `data/weather_paris.csv` |
 | 4 | `build_dataset.py` | `data/traffic_timeseries.csv`, `data/weather_paris.csv` | `data/dataset_traffic_weather.csv` |
 | 5 | `train_lstm.py` | `data/dataset_traffic_weather.csv` | `data/model_lstm.pt`, `data/scaler_lstm_x.joblib`, `data/scaler_lstm_y.joblib`, `data/model_lstm_meta.json` |
 | 5 bis | `train_hgb.py` | `data/dataset_traffic_weather.csv` | `data/model_hgb.joblib`, `data/model_hgb_meta.json`, `data/predictions_hgb.csv` |
-| 6 | `app.py` (Streamlit) | `data/dataset_traffic_weather.csv` + optionnellement les fichiers LSTM et HGB | Interface web (prédiction + graphique) |
+| 5 ter | `train_gru.py` | `data/dataset_traffic_weather.csv` | `data/model_gru.pt`, `data/scaler_gru_x.joblib`, `data/scaler_gru_y.joblib`, `data/model_gru_meta.json` |
+| 6 | `app.py` (Streamlit) | `data/dataset_traffic_weather.csv`, modèles préentraînés (LSTM, HGB, GRU), métadonnées associées et accès à l’API météo | Application web permettant de charger les modèles, d’effectuer des prédictions et d’afficher les résultats sous forme graphique |
 
 **Commandes pour exécuter le pipeline (depuis la racine du projet, environnement virtuel activé) :**
 
