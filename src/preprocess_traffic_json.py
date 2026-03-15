@@ -1,3 +1,9 @@
+"""
+Prétraitement streaming du JSON de comptages multimodaux vers un CSV plat.
+Le but est de lire un gros fichier JSON sans le charger entièrement en mémoire,
+extraire les champs utiles et écrire un fichier CSV plus simple à exploiter
+par les étapes suivantes du pipeline.
+"""
 from pathlib import Path
 import csv
 import json
@@ -9,8 +15,8 @@ try:
 except ImportError:
     ijson = None
 
-
 def _stream_json_objects_no_ijson(file_handle):
+    """Lit progressivement un tableau JSON volumineux sans ijson et renvoie les objets un par un."""
     buf = ""
     in_array = False
     depth = 0
@@ -60,6 +66,7 @@ def _stream_json_objects_no_ijson(file_handle):
 
 
 def stream_json_objects(path: Path):
+    """Choisit la meilleure stratégie de lecture streaming du JSON selon les dépendances disponibles."""
     path = Path(path)
     if ijson is not None:
         with open(path, "rb") as f:
@@ -84,14 +91,15 @@ OUT_COLUMNS = [
     "lon",
 ]
 
-
 def _safe_str(v):
+    # Convertit une valeur en chaîne propre tout en gérant les valeurs nulles
     if v is None:
         return ""
     return str(v).strip()
 
 
 def _safe_int(v):
+    # Convertit une valeur en entier positif sécurisé pour la variable de comptage
     if v is None:
         return 0
     try:
@@ -102,6 +110,7 @@ def _safe_int(v):
 
 
 def process_record(raw: dict) -> dict:
+    # Extrait et normalise les champs utiles d'un enregistrement brut du JSON
     coords = raw.get("coordonnees_geo")
     if isinstance(coords, dict):
         lat = coords.get("lat")
@@ -134,6 +143,7 @@ def stream_json_to_csv(
     selected_sites: list[str] | None = None,
     skip_invalid_time: bool = True,
 ) -> int:
+    # Parcourt le JSON ligne par ligne, applique les filtres nécessaires et écrit un CSV aplati
     json_path = Path(json_path)
     csv_path = Path(csv_path)
     if not json_path.exists():
@@ -144,6 +154,7 @@ def stream_json_to_csv(
     if selected_sites:
         sites_set = {str(s).strip() for s in selected_sites}
 
+    # Parcours streaming du JSON afin d'écrire progressivement le CSV de sortie
     count = 0
     skipped = 0
     stats = {"total": 0, "null_label": 0, "null_voie": 0, "null_sens": 0, "null_coords": 0, "nb_usagers_sum": 0, "nb_usagers_min": None, "nb_usagers_max": None, "sites": set(), "modes": set(), "t_min": None, "t_max": None}
@@ -203,6 +214,7 @@ def stream_json_to_csv(
 
 
 def _print_stats_and_samples(stats, first_rows, last_rows, csv_path):
+    """Affiche un résumé statistique du fichier généré ainsi que quelques exemples de lignes."""
     n = stats["total"]
     if n == 0:
         print("Aucune ligne écrite.")
@@ -212,29 +224,29 @@ def _print_stats_and_samples(stats, first_rows, last_rows, csv_path):
     print("  Fichier de sortie     :", csv_path)
     print("  Nombre de lignes      :", f"{n:,}")
     print("  Valeurs manquantes :")
-    print("    label vide          :", f"{stats['null_label']:,}", f"({100*stats['null_label']/n:.1f} %)")
-    print("    voie vide           :", f"{stats['null_voie']:,}", f"({100*stats['null_voie']/n:.1f} %)")
-    print("    sens vide           :", f"{stats['null_sens']:,}", f"({100*stats['null_sens']/n:.1f} %)")
-    print("    coordonnees_geo null :", f"{stats['null_coords']:,}", f"({100*stats['null_coords']/n:.1f} %)")
+    print("  label vide :", f"{stats['null_label']:,}", f"({100*stats['null_label']/n:.1f} %)")
+    print("  voie vide :", f"{stats['null_voie']:,}", f"({100*stats['null_voie']/n:.1f} %)")
+    print("  sens vide :", f"{stats['null_sens']:,}", f"({100*stats['null_sens']/n:.1f} %)")
+    print("  coordonnees_geo null :", f"{stats['null_coords']:,}", f"({100*stats['null_coords']/n:.1f} %)")
     print("  Variable cible nb_usagers :")
-    print("    somme | min | max   :", stats["nb_usagers_sum"], "|", stats["nb_usagers_min"], "|", stats["nb_usagers_max"])
+    print("  somme | min | max :", stats["nb_usagers_sum"], "|", stats["nb_usagers_min"], "|", stats["nb_usagers_max"])
     if n:
-        print("    moyenne             :", f"{stats['nb_usagers_sum']/n:.2f}")
-    print("  Période (t)           :", stats["t_min"], "->", stats["t_max"])
-    print("  Nombre de sites       :", len(stats["sites"]))
-    print("  Nombre de modes       :", len(stats["modes"]))
+        print(" moyenne :", f"{stats['nb_usagers_sum']/n:.2f}")
+    print("  Période (t) :", stats["t_min"], "->", stats["t_max"])
+    print("  Nombre de sites :", len(stats["sites"]))
+    print("  Nombre de modes :", len(stats["modes"]))
     ms = sorted(stats["modes"])
-    print("  Modes (liste)         :", ", ".join(ms[:15]) + (" ..." if len(ms) > 15 else ""))
+    print("  Modes (liste) :", ", ".join(ms[:15]) + (" ..." if len(ms) > 15 else ""))
     
     print("EXEMPLES (premières lignes)")
     for i, row in enumerate(first_rows, 1):
-        print("  --- Ligne", i, "---")
+        print("Ligne", i, "---")
         for k, v in row.items():
             print("   ", k + ":", v)
 
     print("EXEMPLES (dernières lignes)")
     for i, row in enumerate(last_rows, 1):
-        print("  --- Dernière", i, "---")
+        print("Dernière", i, "---")
         for k, v in row.items():
             print("   ", k + ":", v)
 

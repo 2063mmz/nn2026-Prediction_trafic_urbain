@@ -1,3 +1,9 @@
+"""
+Préparation des données de trafic à partir d'un CSV déjà aplati.
+Le script normalise les noms de colonnes, filtre les valeurs invalides,
+convertit les timestamps en heures et agrège les comptages par site
+(ou par site et par mode).
+"""
 from pathlib import Path
 import pandas as pd
 
@@ -13,8 +19,8 @@ COLUMN_ALIASES = {
     "nb": "nb_usagers",
 }
 
-
 def normalize_columns(df: pd.DataFrame) -> pd.DataFrame:
+    """Renomme les colonnes connues vers un schéma standard afin d'uniformiser les fichiers d'entrée."""
     df = df.copy()
     rename = {}
     for col in df.columns:
@@ -35,6 +41,7 @@ def load_traffic_csv(
     required_cols: tuple[str, ...] = ("id_site", "t", "nb_usagers"),
 ) -> pd.DataFrame:
    
+    """Charge le CSV de trafic, éventuellement par morceaux, puis vérifie la présence des colonnes obligatoires."""
     path = Path(path)
     if not path.exists():
         raise FileNotFoundError(f"Fichier non trouvé: {path}")
@@ -43,7 +50,7 @@ def load_traffic_csv(
         df = pd.read_csv(path)
     else:
         parts = []
-        for chunk in pd.read_csv(path, chunksize=chunksize):
+        for chunk in pd.read_csv(path, chunksize=chunksize, low_memory=False):
             parts.append(chunk)
         df = pd.concat(parts, ignore_index=True)
 
@@ -58,6 +65,7 @@ def load_traffic_csv(
 
 
 def parse_time(df: pd.DataFrame, time_col: str = "t") -> pd.DataFrame:
+    """Convertit la colonne temporelle en datetime UTC et crée une colonne arrondie à l'heure."""
     df = df.copy()
     df[time_col] = pd.to_datetime(df[time_col], utc=True, errors="coerce")
     df["hour"] = df[time_col].dt.floor("h")
@@ -65,6 +73,7 @@ def parse_time(df: pd.DataFrame, time_col: str = "t") -> pd.DataFrame:
 
 
 def drop_invalid(df: pd.DataFrame, time_col: str = "t", value_col: str = "nb_usagers") -> pd.DataFrame:
+    """Supprime les lignes dont la date ou la valeur cible est invalide, ainsi que les comptages négatifs."""
     df = df.copy()
     before = len(df)
     df = df.dropna(subset=[time_col, value_col])
@@ -80,6 +89,7 @@ def aggregate_by_site_hour(
     site_col: str = "id_site",
     hour_col: str = "hour",
 ) -> pd.DataFrame:
+    """Agrège les comptages par site et par heure."""
     return df.groupby([site_col, hour_col], as_index=False)[value_col].sum()
 
 
@@ -90,6 +100,7 @@ def aggregate_by_site_hour_mode(
     hour_col: str = "hour",
     mode_col: str = "mode",
 ) -> pd.DataFrame:
+    """Agrège les comptages par site, par heure et par mode lorsque cette colonne existe."""
     if mode_col not in df.columns:
         return aggregate_by_site_hour(df, value_col, site_col, hour_col)
     return df.groupby([site_col, hour_col, mode_col], as_index=False)[value_col].sum()
@@ -103,22 +114,34 @@ def process_traffic_csv(
     selected_sites: list[str] | None = None,
     chunksize: int | None = 100_000,
 ) -> pd.DataFrame:
+    """Orchestre tout le pipeline de nettoyage et d'agrégation du CSV de trafic."""
     input_path = Path(input_path)
     if not input_path.exists():
         raise FileNotFoundError(f"Fichier non trouvé: {input_path}")
 
+    # 1) Lecture du fichier brut et homogénéisation des colonnes.
     print(f"Lecture du CSV: {input_path}")
     df = load_traffic_csv(input_path, chunksize=chunksize)
 
     df["id_site"] = df["id_site"].astype(str).str.strip()
+
+    # Ne garder que les identifiants de site plausibles : uniquement des chiffres
+    valid_site_mask = df["id_site"].str.fullmatch(r"\d+")
+    nb_invalid_sites = int((~valid_site_mask).sum())
+    if nb_invalid_sites > 0:
+        print(f"  Lignes supprimées (id_site invalide): {nb_invalid_sites}")
+    df = df[valid_site_mask].copy()
+
     if selected_sites:
         sites_set = {str(s).strip() for s in selected_sites}
         df = df[df["id_site"].isin(sites_set)]
         print(f"  Filtre sites: {len(sites_set)} sites")
 
+    # 2) Conversion temporelle et suppression des valeurs invalides.
     df = parse_time(df)
     df = drop_invalid(df)
 
+    # 3) Agrégation finale par heure, avec ou sans séparation par mode.
     if by_mode:
         ts = aggregate_by_site_hour_mode(df)
     else:

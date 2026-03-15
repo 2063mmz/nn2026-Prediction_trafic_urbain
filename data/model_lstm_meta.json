@@ -1,0 +1,31 @@
+{
+  "feature_names": [
+    "nb_usagers",
+    "hour_sin",
+    "hour_cos",
+    "month_sin",
+    "month_cos",
+    "weekday_sin",
+    "weekday_cos",
+    "hour_of_day",
+    "day_of_week",
+    "month",
+    "temperature_2m",
+    "relative_humidity_2m",
+    "precipitation",
+    "weather_code",
+    "wind_speed_10m",
+    "cloud_cover"
+  ],
+  "seq_len": 24,
+  "hidden_size": 64,
+  "num_layers": 2,
+  "metrics": {
+    "MAE": 52.366676330566406,
+    "RMSE": 172.3085174560547,
+    "R2": 0.8707656264305115,
+    "MAPE": 19.096506118774414,
+    "accuracy_within_10": 62.69680170575693,
+    "accuracy_within_20": 84.50490405117272
+  }
+}

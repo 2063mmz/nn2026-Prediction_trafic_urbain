@@ -10,6 +10,7 @@
 - **Objectifs secondaires** :
   - Constituer un jeu de données fusionnant trafic (Paris Open Data), météo (Open-Meteo) et variables temporelles/saisonnières.
   - Mettre en place un modèle de type LSTM exploitant des séquences temporelles (par ex. 24 h) pour prédire l’heure suivante.
+  - Ajouter un modèle tabulaire de type HistGradientBoostingRegressor (HGB) afin de permettre une prédiction en ligne à partir des derniers comptages observés et des prévisions météo.
   - Proposer une interface de prédiction (Streamlit) permettant de choisir un site, une date et une heure et d’afficher la prédiction ainsi qu’un historique récent.
 - **Cadre** : projet final du cours Réseaux de neurones (Loïc Grobol), à livrer sous forme de pipeline reproductible et documenté.
 
@@ -28,7 +29,7 @@ Aucune donnée personnelle ; pas de restriction particulière pour un usage acad
 ### 2.2 Format des données
 
 - **Entrée trafic** : fichier JSON (tableau d’objets) fourni par l’export Paris Open Data. Champs utilisés : `id_site`, `t` (horodatage), `nb_usagers`, `coordonnees_geo` (lat/lon), `label`, `mode`, etc. Fichier volumineux (~2 Go), d’où un prétraitement en flux.
-- **Entrée météo** : aucune donnée locale ; l’application appelle l’API Open-Meteo Archive (`https://archive-api.open-meteo.com/v1/archive`) avec latitude/longitude Paris (48.8566, 2.3522) et une plage de dates.
+- **Entrée météo** : aucune donnée locale ; le pipeline d’entraînement appelle l’API Open-Meteo Archive (`https://archive-api.open-meteo.com/v1/archive`) avec latitude/longitude Paris (48.8566, 2.3522) et une plage de dates. En phase de prédiction en ligne, l’application peut aussi interroger l’API Open-Meteo Forecast (`https://api.open-meteo.com/v1/forecast`) pour obtenir les variables horaires futures.
 - **Données intermédiaires et finales** : CSV (UTF-8), séparateur virgule. Colonnes cibles : `id_site`, `hour` (ou `t`), `nb_usagers` ; après fusion : variables météo + `hour_of_day`, `day_of_week`, `month`, encodages sin/cos (heure, mois, jour de la semaine).
 
 ### 2.3 Traitements opérés
@@ -40,7 +41,7 @@ Aucune donnée personnelle ; pas de restriction particulière pour un usage acad
    Lecture du CSV trafic ; normalisation des noms de colonnes (alias type `date` → `t`, `site_id` → `id_site`, etc.) ; parsing des dates en UTC, arrondi à l’heure ; suppression des lignes sans date valide ou sans `nb_usagers` (ou `nb_usagers` < 0). Agrégation par (`id_site`, `hour`) : somme des `nb_usagers`. Sortie : série temporelle par site et par heure.
 
 3. **Récupération météo (fetch_weather.py)**  
-   Appels à l’API Archive Open-Meteo avec paramètres (latitude, longitude, `start_date`, `end_date`, variables horaires). Les réponses sont agrégées en un DataFrame puis sauvegardées en CSV (colonnes `time`, `temperature_2m`, `relative_humidity_2m`, `precipitation`, `weather_code`, `wind_speed_10m`, `cloud_cover`, etc.).
+   Appels à l’API Archive Open-Meteo avec paramètres (latitude, longitude, `start_date`, `end_date`, variables horaires). Les réponses sont agrégées en un DataFrame puis sauvegardées en CSV (colonnes `time`, `temperature_2m`, `relative_humidity_2m`, `precipitation`, `weather_code`, `wind_speed_10m`, `cloud_cover`, etc.). Le même script expose aussi une fonction forecast utilisée par l’application pour la prédiction en ligne.
 
 4. **Fusion et variables temporelles (build_dataset.py)**  
    Jointure gauche du trafic et de la météo sur l’heure (alignement temporel). Ajout de variables dérivées : `hour_of_day`, `day_of_week`, `month`, `year`, et encodages cycliques (sin/cos) pour l’heure, le mois et le jour de la semaine. Les créneaux sans météo restent dans le jeu avec des NaN météo ; en entraînement, les features sont complétées par `fillna(0)`.
@@ -73,7 +74,7 @@ Aucun traitement de type anonymisation ou agrégation de données personnelles ;
 3. Construction du jeu final (CSV) et vérification des plages de dates et des sites.  
 4. Implémentation du LSTM (PyTorch) : séquences 24 h, sortie régression (heure suivante), métriques MAE, RMSE, R², MAPE, accuracy within 10 % / 20 %.  
 5. Entraînement sur les données complètes (tous les sites), sauvegarde du modèle et des scalers.  
-6. Application Streamlit : chargement du jeu, chargement optionnel du LSTM, calcul de la baseline, affichage de la prédiction et d’un graphique d’historique.  
+6. Application Streamlit : chargement du jeu, chargement optionnel du LSTM, calcul de la baseline, affichage de la prédiction et d’un graphique d’historique. Une branche HGB en ligne exploite les derniers comptages récupérés depuis l’API Paris Open Data ainsi que la météo forecast.  
 7. Rédaction de la documentation technique et des guides d’exécution.
 
 
@@ -96,7 +97,7 @@ Aucun traitement de type anonymisation ou agrégation de données personnelles ;
   - `torch` : LSTM et entraînement.  
   - `streamlit` : interface web.  
   - `joblib` : sauvegarde/chargement des scalers et (si besoin) d’autres objets.
-- **API externes** : Open-Meteo Archive (`https://archive-api.open-meteo.com/v1/archive`) pour les données météo historiques (paramètres : lat, lon, start_date, end_date, variables horaires).
+- **API externes** : Open-Meteo Archive (`https://archive-api.open-meteo.com/v1/archive`) pour les données météo historiques ; Open-Meteo Forecast (`https://api.open-meteo.com/v1/forecast`) pour les prévisions horaires ; Paris Open Data Explore API v2.1 pour récupérer les derniers comptages au moment de la prédiction.
 
 ### 4.3 Structure des fichiers et ordre d’exécution
 
@@ -121,7 +122,8 @@ Aucun traitement de type anonymisation ou agrégation de données personnelles ;
 | 3 | `fetch_weather.py` | API (dates en arguments) | `data/weather_paris.csv` |
 | 4 | `build_dataset.py` | `data/traffic_timeseries.csv`, `data/weather_paris.csv` | `data/dataset_traffic_weather.csv` |
 | 5 | `train_lstm.py` | `data/dataset_traffic_weather.csv` | `data/model_lstm.pt`, `data/scaler_lstm_x.joblib`, `data/scaler_lstm_y.joblib`, `data/model_lstm_meta.json` |
-| 6 | `app.py` (Streamlit) | `data/dataset_traffic_weather.csv` + optionnellement les fichiers LSTM | Interface web (prédiction + graphique) |
+| 5 bis | `train_hgb.py` | `data/dataset_traffic_weather.csv` | `data/model_hgb.joblib`, `data/model_hgb_meta.json`, `data/predictions_hgb.csv` |
+| 6 | `app.py` (Streamlit) | `data/dataset_traffic_weather.csv` + optionnellement les fichiers LSTM et HGB | Interface web (prédiction + graphique) |
 
 **Commandes pour exécuter le pipeline (depuis la racine du projet, environnement virtuel activé) :**
 
@@ -131,9 +133,10 @@ Aucun traitement de type anonymisation ou agrégation de données personnelles ;
 4. `python src/fetch_weather.py --start 2024-01-01 --end 2026-02-28 --output data/weather_paris.csv`
 5. `python src/build_dataset.py --traffic data/traffic_timeseries.csv --weather data/weather_paris.csv --output data/dataset_traffic_weather.csv`
 6. `python src/train_lstm.py`
-7. `streamlit run app.py`
+7. `python src/train_hgb.py`
+8. `streamlit run app.py`
 
-L’interface s’ouvre dans le navigateur ; on choisit le site, la date et l’heure, et on obtient la prédiction (LSTM si les fichiers sont présents, sinon baseline) ainsi qu’un graphique d’historique pour le site.
+L’interface s’ouvre dans le navigateur ; on choisit le site, la date et l’heure, puis le mode de prédiction. Le mode **HGB en ligne** combine les derniers comptages disponibles et la météo forecast. Le mode **LSTM hors ligne** utilise le jeu local si les fichiers du modèle sont présents ; sinon l’application retombe sur la baseline.
 
 
 ## 5. Résultats et discussion
@@ -162,7 +165,7 @@ Les sorties sont des fichiers CSV/JSON/joblib et l’écran Streamlit (prédicti
 
 ### 5.3 Discussion
 
-- **Ce qui a été fait** : pipeline complet (données → fusion → entraînement LSTM → interface), reproductible via des commandes documentées ; métriques de régression et indicateurs de type “accuracy within X %” ; gestion des cas sans LSTM ou sans assez d’historique (baseline).
+- **Ce qui a été fait** : pipeline complet (données → fusion → entraînement LSTM/HGB → interface), reproductible via des commandes documentées ; métriques de régression et indicateurs de type “accuracy within X %” ; gestion des cas sans LSTM ou sans assez d’historique (baseline). Une voie de prédiction en ligne est disponible avec HGB lorsque les API externes répondent correctement.
 - **Limites et pistes d’amélioration** :  
   - Météo unique pour toute l’agglomération (un point lat/lon) ; une approche multi-sites ou grille pourrait affiner.  
   - Pas de prédiction multi-horizon (seulement l’heure suivante).  
